@@ -1,0 +1,37 @@
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local MLflow runs & databases
+mlflow.db
+mlruns/
+.mlflow/
+
+# DVC & Raw Data (DVC tracks binaries, Git tracks .dvc pointer)
+/data/raw
+/data/demo_output
+
+# Large Local Checkpoints
+models/*.pt
+
+# OS & IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# DVC Internal Local Cache
+.dvc/cache/
+.dvc/tmp/

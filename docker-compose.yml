@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # S3-Compatible Object Storage for DVC Image Binaries
+  minio:
+    image: minio/minio:latest
+    container_name: edge-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Web Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # Automatic Bucket Creator for MinIO
+  mc-init:
+    image: minio/mc:latest
+    container_name: edge-minio-mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin); do
+        echo 'Waiting for MinIO to start...';
+        sleep 1;
+      done;
+      /usr/bin/mc mb --ignore-existing myminio/edge-data-bucket;
+      echo 'Bucket edge-data-bucket is ready.';
+      exit 0;
+      "
+
+  # MLflow Experiment Tracking & Model Registry Server
+  mlflow:
+    image: python:3.11-slim
+    container_name: edge-mlflow
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    working_dir: /mlflow
+    volumes:
+      - mlflow_data:/mlflow
+    command: >
+      /bin/sh -c "
+      pip install --no-cache-dir mlflow boto3 &&
+      mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow/artifacts
+      "
+
+  # Containerized Edge Inspection API Engine
+  edge-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edge-cv-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - minio
+      - mlflow
+    environment:
+      - MODEL_PATH=models/edge_model.pt
+      - DEFAULT_THRESHOLD=0.025
+      - MINIO_ENDPOINT=http://minio:9000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+
+volumes:
+  minio_data:
+  mlflow_data:

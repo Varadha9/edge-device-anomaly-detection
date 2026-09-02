@@ -1,0 +1,8 @@
+{
+  "run_id": "5859fba653224b8fbf55c5d1a3572edf",
+  "experiment_id": "1",
+  "optimal_threshold": 0.01704,
+  "roc_auc": 0.9722222222222222,
+  "f1_score": 0.9655172413793104,
+  "saved_model_path": "models/edge_model.pt"
+}
